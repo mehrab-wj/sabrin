@@ -3,6 +3,8 @@ import urllib.parse
 import urllib
 import re
 import os
+import sys
+import linecache
 
 try:
     from colorama import init, Fore, Back, Style, deinit
@@ -11,6 +13,14 @@ except Exception as e:
     print(str(e))
     exit(0)
 
+def PrintException():
+    exc_type, exc_obj, tb = sys.exc_info()
+    f = tb.tb_frame
+    lineno = tb.tb_lineno
+    filename = f.f_code.co_filename
+    linecache.checkcache(filename)
+    line = linecache.getline(filename, lineno, f.f_globals)
+    print('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj))
 
 def show_alert(alert_type, message):
     if alert_type == "success":
@@ -37,7 +47,6 @@ def extract_file_name_by_url(url):
     filename = url[url.rfind("/")+1:]
     if filename == '':
         filename = 'index'
-    filename = filename.replace('?','')
     return filename
 
 
@@ -55,11 +64,13 @@ def extract_dir_name_by_local_addr(addr, file_name):
     return dir_addr
 def make_dir(dir_name):
     try:
+        dir_name = re.sub(r'(\?.*)', '', dir_name)
         os.makedirs(dir_name)
     except FileExistsError:
         # directory already exists
         pass
 def make_file(file_name,content):
+    file_name = re.sub(r'(\?.*)', '', file_name)
     the_file = open(file_name, 'w' , encoding="utf-8")
     the_file.write(str(content)) 
     the_file.close()
@@ -69,7 +80,7 @@ def new_request(url):
     return request_content
 
 try:
-    url = 'http://localhost/zirgozaronline'
+    url = 'https://4rd.ir'
     request = urllib.request.urlopen(url)
     request_content = request.read().decode('utf-8')
     show_alert('success', 'request submited successfully!')
@@ -97,39 +108,24 @@ try:
             style_path_in_system = '{}/{}/{}'.format(dir_name,style_dir, style_file_name)
             make_file(style_path_in_system,style_content)
             show_alert('info', 'new file created [{}] url: {}'.format(style_url,style_path_in_system))
-        show_alert('info', style)
-    
-    #extracting javascript files :
-    show_alert('warning', 'extracting javascripting files ...')
-    javascript_list = re.findall(r'<script src="(.*)?">', str(request_content))
-    for javascript in javascript_list:
-        if not validators.url(javascript):
-            #javascript loaded from local url , we should download it:
-            javascript_file_name = extract_file_name_by_url(javascript)
-            javascript_dir = extract_dir_name_by_local_addr(javascript,javascript_file_name)
-            make_dir('{}/{}'.format(dir_name,javascript_dir))
-            javascript_url = '{}/{}/{}'.format(url, javascript_dir, javascript_file_name)
-            javascript_content = new_request(javascript_url)
-            javascript_path_in_system = '{}/{}/{}'.format(dir_name,javascript_dir, javascript_file_name)
-            make_file(javascript_path_in_system, javascript_content)
-            show_alert('info', 'new file created [{}] url: {}'.format(javascript_path_in_system,javascript_url))
-        show_alert('info', javascript)
-    #extracting images :
-    show_alert('warning','extracting images ...')
-    images_list = re.findall(r'src="(.*?)"', str(request_content))
-    for image in images_list:
         
-        if not validators.url(image):
-            #download image proccess:
-            image_file_name = extract_file_name_by_url(image)
-            image_dir = extract_dir_name_by_local_addr(image,image_file_name)
-            make_dir('{}/{}'.format(dir_name,image_dir))
-            image_url = '{}/{}/{}'.format(url,image_dir,image_file_name)
-            image_path_in_sytem = '{}/{}/{}'.format(dir_name,image_dir,image_file_name)
-            f = open(image_path_in_sytem, 'wb')
-            f.write(urllib.request.urlopen(image_url).read())
+    #extracting sources :
+    show_alert('warning','extracting sources ...')
+    sources_list = re.findall(r'src="(.*?)"', str(request_content))
+    for source in sources_list:
+        
+        if not validators.url(source):
+            #download sources proccess:
+            source_file_name = extract_file_name_by_url(source)
+            source_dir = extract_dir_name_by_local_addr(source,source_file_name)
+            make_dir('{}/{}'.format(dir_name,source_dir))
+            source_url = '{}/{}/{}'.format(url,source_dir,source_file_name)
+            source_path_in_sytem = '{}/{}/{}'.format(dir_name,source_dir,source_file_name)
+            source_path_in_sytem = re.sub(r'(\?.*)', '', source_path_in_sytem)
+            f = open(source_path_in_sytem, 'wb')
+            f.write(urllib.request.urlopen(source_url).read())
             f.close()
-            show_alert('info','new image created[{}] url: {}'.format(image_path_in_sytem,image_url))
-        show_alert('info',image)
-except Exception as e:
-    show_alert('danger', str(e))
+            show_alert('info','new source created[{}] url: {}'.format(source_path_in_sytem,source_url))
+        
+except:
+    PrintException()
