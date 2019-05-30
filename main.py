@@ -1,5 +1,6 @@
 import urllib.request
 import urllib.parse
+import urllib
 import re
 import os
 
@@ -28,6 +29,7 @@ def extract_dir_name_by_url(url):
     url = url.replace('http://', '')
     url = url.replace('https://', '')
     url = url.replace('/', '-')
+    url = url.replace('?', '-')
     return url
 
 
@@ -35,6 +37,7 @@ def extract_file_name_by_url(url):
     filename = url[url.rfind("/")+1:]
     if filename == '':
         filename = 'index'
+    filename = filename.replace('?','')
     return filename
 
 
@@ -111,5 +114,22 @@ try:
             make_file(javascript_path_in_system, javascript_content)
             show_alert('info', 'new file created [{}] url: {}'.format(javascript_path_in_system,javascript_url))
         show_alert('info', javascript)
+    #extracting images :
+    show_alert('warning','extracting images ...')
+    images_list = re.findall(r'src="(.*?)"', str(request_content))
+    for image in images_list:
+        
+        if not validators.url(image):
+            #download image proccess:
+            image_file_name = extract_file_name_by_url(image)
+            image_dir = extract_dir_name_by_local_addr(image,image_file_name)
+            make_dir('{}/{}'.format(dir_name,image_dir))
+            image_url = '{}/{}/{}'.format(url,image_dir,image_file_name)
+            image_path_in_sytem = '{}/{}/{}'.format(dir_name,image_dir,image_file_name)
+            f = open(image_path_in_sytem, 'wb')
+            f.write(urllib.request.urlopen(image_url).read())
+            f.close()
+            show_alert('info','new image created[{}] url: {}'.format(image_path_in_sytem,image_url))
+        show_alert('info',image)
 except Exception as e:
     show_alert('danger', str(e))
