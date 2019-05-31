@@ -78,9 +78,34 @@ def new_request(url):
     request = urllib.request.urlopen(url)
     request_content = request.read().decode('utf-8')
     return request_content
-
+def download_fonts_from_style_content(style_content,style_url,style_dir,style_name):
+    try:
+        style_path_url = style_url.replace(style_name,'')
+        style_path_dir = style_dir.replace(style_name,'')
+        show_alert('warning','extracting site fonts ...')
+        fonts_list = re.findall(r'url\(\'(.*)?\'\)(?!\S)', str(style_content))
+        for font in fonts_list:
+            
+            if not validators.url(font):
+                #download fonts proccess:
+                font_file_name = extract_file_name_by_url(font)
+                font_file_name = re.sub(r'(\?.*)', '', font_file_name)
+                font_dir = extract_dir_name_by_local_addr(font,font_file_name)
+                #make_dir('{}/{}'.format(dir_name,font_dir))
+                font_url = '{}{}/{}'.format(style_path_url,font_dir,font_file_name)
+                font_path_in_sytem = '{}{}/{}'.format(style_path_dir,font_dir,font_file_name)
+                font_path_in_sytem = re.sub(r'(\?.*)', '', font_path_in_sytem)
+                dir_name_for_font = extract_dir_name_by_local_addr(font_path_in_sytem,font_file_name)
+                
+                make_dir(dir_name_for_font)
+                f = open(font_path_in_sytem, 'wb')
+                f.write(urllib.request.urlopen(font_url).read())
+                f.close()
+                show_alert('info','new font created[{}] url: {}'.format(font_path_in_sytem,font_url))
+    except:
+        PrintException()  
 try:
-    url = 'https://4rd.ir'
+    url = 'http://localhost/zirgozaronline'
     request = urllib.request.urlopen(url)
     request_content = request.read().decode('utf-8')
     show_alert('success', 'request submited successfully!')
@@ -106,8 +131,9 @@ try:
             style_url = '{}/{}/{}'.format(url, style_dir, style_file_name)
             style_content = new_request(style_url)
             style_path_in_system = '{}/{}/{}'.format(dir_name,style_dir, style_file_name)
+            download_fonts_from_style_content(style_content,style_url,style_path_in_system,style_file_name)
             make_file(style_path_in_system,style_content)
-            show_alert('info', 'new file created [{}] url: {}'.format(style_url,style_path_in_system))
+            show_alert('info', 'new style created [{}] url: {}'.format(style_url,style_path_in_system))
         
     #extracting sources :
     show_alert('warning','extracting sources ...')
